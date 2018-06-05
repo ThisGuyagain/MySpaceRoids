@@ -12,7 +12,7 @@ bool fullscreen = false;
 int main()
 {
 	srand(static_cast<unsigned int>(time(0)));
-	sf::RenderWindow window(sf::VideoMode(1280, 720), "Welcome to SDVA 103!");		
+	sf::RenderWindow window(sf::VideoMode(1280, 720), "Spaceroids");		
 	Game game;
 	
 	sf::Clock clock;
@@ -29,11 +29,15 @@ int main()
 				{					
 					window.close();
 					fullscreen = !fullscreen;
-					window.create(fullscreen ? sf::VideoMode(1920,1080) : sf::VideoMode(1280, 720), "Welcome to SDVA 103!", fullscreen ? sf::Style::Fullscreen : sf::Style::Titlebar);
+					window.create(fullscreen ? sf::VideoMode(1920,1080) : sf::VideoMode(1280, 720), "Spaceroids", fullscreen ? sf::Style::Fullscreen : sf::Style::Titlebar);
 				}
 				if (event.key.code == sf::Keyboard::G)
 				{				
 					game.RemoveAll();
+				}
+				if (event.key.code == sf::Keyboard::Escape)
+				{
+					window.close();
 				}
 			}
 			if (event.type == sf::Event::Closed)

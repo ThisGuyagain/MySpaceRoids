@@ -6,9 +6,11 @@
 enum SoundType
 {
 	EXPLOSION,
+	POWERUP,
 	SHOOT,
 	DEATH,
 	SPAWN,
+	BOMB,
 	INVULNERABLE_RUNNING_OUT,
 	COUNT
 };
@@ -33,16 +35,19 @@ public:
 	
 	float m_upgradeROF;
 	int m_upgradeAOB;
-
+	int m_livesRemaining;
+	float  m_multiplier;
 
 private:
 	std::vector<GameObject*> m_gameObjects;
 	bool m_playerupgrade;
 	bool m_gameOver;
 	bool m_dropPU;
-	int m_livesRemaining;
+	bool m_mainmenu;
+	
 	float m_timeUntilPlayerSpawn;
 	int m_score;
+	
 	int m_level;
 
 	sf::Font m_mainFont;

@@ -12,6 +12,7 @@ GameObject::GameObject(std::string texturePath, const sf::Vector2f & pos)
 	m_texture.loadFromFile(texturePath);
 	m_sprite.setTexture(m_texture);
 	m_sprite.setOrigin(m_sprite.getTextureRect().width * 0.5f, m_sprite.getTextureRect().height * 0.5f);
+	
 }
 
 void GameObject::Destroy()
@@ -52,7 +53,7 @@ void GameObject::Draw(sf::RenderWindow * window)
 	collisionRadius.setPosition(m_pos);
 	collisionRadius.setOrigin(m_collisionRadius, m_collisionRadius);
 	collisionRadius.setOutlineColor(sf::Color::Red);
-	//window->draw(collisionRadius);
+	window->draw(collisionRadius);
 	window->draw(m_sprite);
 }
 
@@ -158,7 +159,7 @@ void GameObject::ApplyDrag(float dt)
 {
 	if (m_accel.x == 0 && m_accel.y == 0)
 	{
-		float dragAmount = dt * 0.9f;
+		float dragAmount = dt * 5.9f;
 		m_vel.x -= dragAmount* m_vel.x;
 		m_vel.y -= dragAmount * m_vel.y;
 	}
@@ -182,6 +183,7 @@ void Bullet::Update(sf::RenderWindow * window, float dt)
 	{
 		Destroy();
 	}
+	
 }
 
 void Bullet::CollidedWith(GameObject * other)
@@ -194,10 +196,127 @@ void Bullet::CollidedWith(GameObject * other)
 	}
 }
 
+BulletTwo::BulletTwo(const sf::Vector2f & pos)
+	: GameObject("Sprites/PNG/Lasers/laserBlue08.png", pos)
+	, m_timeAlive(0.0f)
+{
+	m_sprite.setScale(0.5, 0.5);
+	SetCollisionRadius(20);
+}
+
+void BulletTwo::Update(sf::RenderWindow * window, float dt)
+{
+	GameObject::Update(window, dt);
+	m_angle += dt * 360;
+	m_timeAlive += dt;
+
+	if (m_timeAlive > 1.0f)
+	{
+		Destroy();
+	}
+}
+
+void BulletTwo::CollidedWith(GameObject * other)
+{
+	Asteroid* asteroid = dynamic_cast<Asteroid*>(other);
+	if (asteroid)
+	{
+		Destroy();
+		other->Destroy();
+	}
+}
+
+BulletThree::BulletThree(const sf::Vector2f & pos)
+	: GameObject("Sprites/PNG/Lasers/laserBlue05.png", pos)
+	, m_timeAlive(0.0f)
+{
+	m_sprite.setScale(0.5, 1.5);
+	SetCollisionRadius(5);
+}
+
+void BulletThree::Update(sf::RenderWindow * window, float dt)
+{
+	GameObject::Update(window, dt);
+	
+	m_timeAlive += dt;
+
+	if (m_timeAlive > 10.0f)
+	{
+		Destroy();
+	}
+}
+
+void BulletThree::CollidedWith(GameObject * other)
+{
+	Asteroid* asteroid = dynamic_cast<Asteroid*>(other);
+	if (asteroid)
+	{
+		Destroy();
+		other->Destroy();
+	}
+	Bullet* bullet = dynamic_cast<Bullet*>(other);
+	if (bullet)
+	{
+		other->Destroy();
+
+	}
+}
+Bomb::Bomb(const sf::Vector2f & pos)
+	: GameObject("Sprites/PNG/Lasers/laserRed10.png", pos)
+	, m_timeAlive(0.0f)
+{
+	m_sprite.setScale(.25, .25);
+	SetCollisionRadius(10);
+	
+}
+
+void Bomb::Update(sf::RenderWindow * window, float dt)
+{
+	GameObject::Update(window, dt);
+	m_angle += dt * 360;
+	m_timeAlive += dt;
+
+	if (m_timeAlive >= 5.0f)
+	{
+		SetCollisionRadius(200);
+		m_sprite.setScale(5.0, 5.0);
+		m_owner->PlaySound(SoundType::BOMB);
+	}
+	if (m_timeAlive > 6.0f)
+	{
+		Destroy();
+	}
+}
+
+void Bomb::CollidedWith(GameObject * other)
+{
+	Asteroid* asteroid = dynamic_cast<Asteroid*>(other);
+	if (asteroid)
+	{
+		
+		other->Destroy();
+	}
+	if (m_timeAlive <= 0.5f)
+	{
+		Bullet* bullet = dynamic_cast<Bullet*>(other);
+		if (bullet)
+		{
+			other->Destroy();
+
+		}
+	}
+}
+
+
 Player::Player(std::string texturePath, const sf::Vector2f & pos)
 	: GameObject(texturePath, pos)
+	, m_moveright(false)
+	, m_moveleft(false)
 	, m_firing(false)
+	, m_firingBackwards(false)
 	, m_fireCooldown(0.0f)
+	, m_backwardsfire(0.0f)
+	, m_laser(0.0f)
 {
 	SetCollisionRadius(30);
 	MakeInvulnerable();
@@ -221,34 +340,81 @@ void Player::Update(sf::RenderWindow * window, float dt)
 	}
 
 	m_fireCooldown -= dt;
+	m_backwardsfire -= dt;
+	m_laser -= dt;
+	m_bomb -= dt;
 	float prevInvulnerableTime = m_invulnerableTimeLeft;
 	m_invulnerableTimeLeft -= dt;
 	m_firing = false;
+	m_moveright = false;
+	m_moveleft = false;
+
+	
 
 	SetAccel(0.0f);
+	SetAccel(0.0f);
+
+	/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+	{
+		quick_exit;
+	}*/
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
 		SetAngle(GetAngle() + 180 * dt);
+		m_moveright = true;
+	}
+	if (m_moveright)
+	{
+
+		//SetAngle(90);
+
+		//SetVelocity(200.0f);
+		//m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle + 90)) * 50, -cos(DEG_TO_RAD * (m_angle + 90)) * 50), sf::Color::White, 1, 0, -m_angle, 400, 0));
+		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle - 90)) * 50, -cos(DEG_TO_RAD * (m_angle - 90)) * 50), sf::Color::White, 1, 0, -m_angle, 100, 0));
+
+	}
+	else
+	{
+		SetAccel(0.0f);
+		
+
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
 		SetAngle(GetAngle() - 180 * dt);
+		m_moveleft = true;
+		
+	}
+	if (m_moveleft)
+	{
+		//SetAngle(-90);
+		//SetVelocity(200.0f);
+		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle + 90)) * 50, -cos(DEG_TO_RAD * (m_angle + 90)) * 50), sf::Color::White, 1, 0, -m_angle, 100, 0));
+		//m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle - 90)) * 50, -cos(DEG_TO_RAD * (m_angle - 90)) * 50), sf::Color::White, 1, 0, -m_angle, 400, 0));
+
+
+	}
+	else
+	{
+		SetAccel(0.0f);
+
+
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 	{
 		SetAccel(400.0f);
-		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle + 90)) * 50, -cos(DEG_TO_RAD * (m_angle + 90)) * 50), sf::Color::White, 1, 0, -m_angle, 400, 0));
-		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle - 90)) * 50, -cos(DEG_TO_RAD * (m_angle - 90)) * 50), sf::Color::White, 1, 0, -m_angle, 400, 0));
+		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle + 90)) * 50, -cos(DEG_TO_RAD * (m_angle + 90)) * 50), sf::Color::White, 1, 0, -m_angle, 100, 0));
+		m_owner->AddObject(new ParticleSystem(1, m_pos + sf::Vector2f(sin(DEG_TO_RAD * (m_angle - 90)) * 50, -cos(DEG_TO_RAD * (m_angle - 90)) * 50), sf::Color::White, 1, 0, -m_angle, 100, 0));
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z) || sf::Keyboard::isKeyPressed(sf::Keyboard::X))
 	{
 		m_firing = true;	
 	}
 
 	if (m_firing && m_fireCooldown <= 0.0f)
 	{
-		bool tripleShot = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl);
+		bool tripleShot = sf::Keyboard::isKeyPressed(sf::Keyboard::X);
 		m_fireCooldown = tripleShot ? 0.9f : m_owner->m_upgradeROF;
 		m_owner->PlaySound(SoundType::SHOOT);
 		if (tripleShot)
@@ -260,6 +426,31 @@ void Player::Update(sf::RenderWindow * window, float dt)
 				bullet->SetVelocity(800);
 				m_owner->AddObject(bullet);
 			}
+			
+			if ( m_backwardsfire >= 0.0f)
+			{
+				for (int i = 0; i < m_owner->m_upgradeAOB; i++)
+				{
+					BulletTwo* bulletTwo = new BulletTwo(m_pos);
+					bulletTwo->SetAngle(m_angle - 195 + i * 15);
+					bulletTwo->SetVelocity(300);
+					m_owner->AddObject(bulletTwo);
+					m_backwardsfire -= dt;
+				}
+			}
+			if (m_laser >= 0.0f)
+			{
+				for (int i = 0; i < m_owner->m_upgradeAOB; i++)
+				{
+					BulletThree* bulletThree = new BulletThree(m_pos);
+					bulletThree->SetAngle(m_angle - 15 + i * 15);
+					bulletThree->SetVelocity(750);
+					m_owner->AddObject(bulletThree);
+					m_laser -= dt;
+				}
+
+			}
+			
 
 		}
 		else
@@ -268,6 +459,36 @@ void Player::Update(sf::RenderWindow * window, float dt)
 			bullet->SetAngle(m_angle);
 			bullet->SetVelocity(500);
 			m_owner->AddObject(bullet);
+			
+				if (m_backwardsfire >= 0.0f)
+				{
+
+					BulletTwo* bulletTwo = new BulletTwo(m_pos);
+					bulletTwo->SetAngle(m_angle - 180);
+					bulletTwo->SetVelocity(300);
+					m_owner->AddObject(bulletTwo);
+					m_backwardsfire -= dt;
+
+				}
+				if (m_laser >= 0.0f)
+				{
+					
+						BulletThree* bulletThree = new BulletThree(m_pos);
+						bulletThree->SetAngle(m_angle );
+						bulletThree->SetVelocity(750);
+						m_owner->AddObject(bulletThree);
+						m_laser -= dt;					
+				}
+				if (m_bomb >= 0.0f)
+				{
+					Bomb* bomb = new Bomb(m_pos);
+					bomb->SetAngle(m_angle);
+					bomb->SetVelocity(50);
+					m_owner->AddObject(bomb);
+					
+					m_bomb = 0;
+
+				}
 		}
 	}
 }
@@ -282,19 +503,53 @@ void Player::CollidedWith(GameObject * other)
 		m_owner->PlaySound(SoundType::DEATH);
 	}
 
-	PowerUp* powerUp = dynamic_cast<PowerUp*>(other);
-	if (powerUp && m_invulnerableTimeLeft <= 0.0f)
+	GreenPowerUp* PowerUpG = dynamic_cast<GreenPowerUp*>(other);
+	if (PowerUpG )
 	{
-		/*Destroy();
-		m_owner->Died();
+		m_bomb = 10.0f;
+	}
+	RedSheild* PowerUpRS = dynamic_cast<RedSheild*>(other);
+	if (PowerUpRS )
+	{
+		m_owner->m_livesRemaining += 1;
+		MakeInvulnerable();
+	}
+	PowerUpStar* PowerUpS = dynamic_cast<PowerUpStar*>(other);
+	if (PowerUpS)
+	{		
+		m_laser = 6.0f;	
+	}
+	RedPowerUpStar* RPowerUpS = dynamic_cast<RedPowerUpStar*>(other);
+	if (RPowerUpS)
+	{
+		m_backwardsfire = 6.0f;
+	}
+
+}
+
+void PowerUp::CollidedWith(GameObject* other)
+{
+	Player* player = dynamic_cast<Player*>(other);
+	if (player && m_invulnerableTimeLeft <= 0.0f)
+	{
+		Destroy();
+		m_owner->PlaySound(SoundType::POWERUP);
+		m_owner->AddPoints(500 );
+		/*m_owner->Died();
 		m_owner->PlaySound(SoundType::DEATH);*/
 	}
+
 
 }
 
 void Player::MakeInvulnerable()
 {
 	m_invulnerableTimeLeft = 3.0f;
+}
+
+void PowerUp::MakeInvulnerable()
+{
+	m_invulnerableTimeLeft = 0.0f;
 }
 
 
@@ -329,7 +584,7 @@ SmallAsteroid::SmallAsteroid(const sf::Vector2f & pos)
 void SmallAsteroid::Destroy()
 {
 	Asteroid::Destroy();
-	m_owner->AddPoints(10);
+	m_owner->AddPoints(10 * m_owner->m_multiplier);
 	m_owner->AddObject(new ParticleSystem(15, m_pos, sf::Color::White, 3, 360, 0, 25, 100));
 }
 
@@ -361,8 +616,8 @@ LargeAsteroid::LargeAsteroid(const sf::Vector2f & pos)
 void LargeAsteroid::Destroy()
 {
 	Asteroid::Destroy();
-	m_owner->AddPoints(100);
-	m_owner->AddObject(new ParticleSystem(100, m_pos, sf::Color::White, 7, 360, 0, 25, 100));
+	m_owner->AddPoints(100 * m_owner->m_multiplier);
+	m_owner->AddObject(new ParticleSystem(69, m_pos, sf::Color::White, 7, 360, 0, 25, 100));
 	for (int i = 0; i < 3; i++)
 	{
 		MediumAsteroid* medAsteroid = new MediumAsteroid(m_pos);
@@ -388,7 +643,7 @@ void PowerUp::Update(sf::RenderWindow * window, float dt)
 	GameObject::Update(window, dt);
 	m_timeAlive += dt;
 
-	if (m_timeAlive > 5.0f)
+	if (m_timeAlive > 7.0f)
 	{
 		Destroy();
 	}
@@ -397,15 +652,18 @@ void PowerUp::Update(sf::RenderWindow * window, float dt)
 void PowerUp::Destroy()
 {
 	GameObject::Destroy();
+	
 }
 
 PowerUpStar::PowerUpStar(std::string texturePath, const sf::Vector2f & pos)
 	:PowerUp("Sprites/PNG/Power-ups/star_gold.png", pos)
 {	
 }
+
+
 void PowerUpStar::Destroy()
 {
-
+	
 	PowerUp::Destroy();
 
 }
@@ -431,13 +689,13 @@ void RedSheild::Destroy()
 
 }
 GreenPowerUp::GreenPowerUp(std::string texturePath, const sf::Vector2f & pos)
-	:PowerUp("Sprites/PNG/Power-ups/powerupRed_star.png", pos)
+	:PowerUp("Sprites/PNG/Power-ups/powerupGreen_star.png", pos)
 {
 }
 void GreenPowerUp::Destroy()
 {
 
-	GreenPowerUp::Destroy();
+	PowerUp::Destroy();
 
 }
 
@@ -452,12 +710,12 @@ void PUAsteroid::Destroy()
 {
 	
 	Asteroid::Destroy();
-	m_owner->AddPoints(100);
-	m_owner->AddObject(new ParticleSystem(100, m_pos, sf::Color::Cyan, 7, 360, 0, 25, 100));
+	m_owner->AddPoints(100 * m_owner->m_multiplier);
+	m_owner->SpawnPowerUp();
+	m_owner->AddObject(new ParticleSystem(69, m_pos, sf::Color::Cyan, 7, 360, 0, 25, 100));
 	
 	m_owner->SpawnPowerUp();
-	/*PowerUpStar* starPU = starPU = new PowerUpStar(m_pos);
-	m_owner->AddObject(starPU);*/
+	
 
 	
 	

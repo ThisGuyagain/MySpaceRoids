@@ -32,6 +32,7 @@ public:
 	bool IsColliding(GameObject* other);
 	virtual void CollidedWith(GameObject* other);
 
+
 protected:
 	sf::Vector2f m_pos;
 	sf::Vector2f m_vel;
@@ -56,20 +57,56 @@ public:
 	float m_timeAlive;
 };
 
+class BulletTwo : public GameObject
+{
+public:
+	BulletTwo(const sf::Vector2f& pos);
+	virtual void Update(sf::RenderWindow * window, float dt);
+	virtual void ApplyDrag(float dt) {};
+	virtual void CollidedWith(GameObject* other);
+	float m_timeAlive;
+};
+class BulletThree : public GameObject
+{
+public:
+	BulletThree(const sf::Vector2f& pos);
+	virtual void Update(sf::RenderWindow * window, float dt);
+	virtual void ApplyDrag(float dt) {};
+	virtual void CollidedWith(GameObject* other);
+	float m_timeAlive;
+};
+class Bomb : public GameObject
+{
+public:
+	Bomb(const sf::Vector2f& pos);
+	virtual void Update(sf::RenderWindow * window, float dt);
+	
+	virtual void CollidedWith(GameObject* other);
+	float m_timeAlive;
+};
+
 class Player : public GameObject
 {
 public:
 	Player(std::string texturePath, const sf::Vector2f& pos);
 	virtual void Update(sf::RenderWindow * window, float dt);
 	virtual void CollidedWith(GameObject* other);
+
 	void MakeInvulnerable();
+	
 	float upgradeROF = 0.2f;
 	int upgradeAOB = 3;
 
 private:
+	bool m_moveright;
+	bool m_moveleft;
 	bool m_firing;
+	bool m_firingBackwards;
 	float m_fireCooldown;
+	float m_backwardsfire;
 	float m_invulnerableTimeLeft;
+	float m_laser;
+	float m_bomb;
 };
 
 
@@ -119,10 +156,15 @@ public:
 	PowerUp(std::string texturePath, const sf::Vector2f& pos);
 	virtual void Update(sf::RenderWindow * window, float dt);
 	virtual void Destroy();
+	virtual void ApplyDrag(float dt) {};
+	
+	virtual void CollidedWith(GameObject* other);
+	void MakeInvulnerable();
 	float m_timeAlive;
 	bool DropPU;
 private:
 	float m_rotationRate;
+	float m_invulnerableTimeLeft;
 	
 };
 
@@ -130,7 +172,7 @@ class PowerUpStar : public PowerUp
 {
 public:
 	PowerUpStar(std::string texturePath, const sf::Vector2f& pos);
-
+	
 	virtual void Destroy();
 };
 class RedPowerUpStar : public PowerUp
